@@ -29,7 +29,7 @@ class ProductController extends Controller
         );
     }
 
-    public function show(ShowProductRequest $request, Product $product): ProductResource
+    public function show(ShowProductRequest $request, Product $product): JsonResponse
     {
         $product->load([
             'brand',
@@ -39,21 +39,21 @@ class ProductController extends Controller
             'reviews',
         ]);
 
-        return new ProductResource($product);
+        return response()->json(new ProductResource($product), 200);
     }
 
-    public function store(StoreProductRequest $request, ProductService $productService): ProductResource
+    public function store(StoreProductRequest $request, ProductService $productService): JsonResponse
     {
         $product = $productService->create($request->validated());
 
-        return new ProductResource($product);
+        return response()->json(new ProductResource($product), 201);
     }
 
-    public function update(UpdateProductRequest $request, ProductService $productService,  Product $product): ProductResource
+    public function update(UpdateProductRequest $request, ProductService $productService,  Product $product): JsonResponse
     {
         $product = $productService->update($product, $request->validated());
 
-        return new ProductResource($product);
+        return response()->json(new ProductResource($product), 200);
     }
 
     public function destroy(Product $product): JsonResponse

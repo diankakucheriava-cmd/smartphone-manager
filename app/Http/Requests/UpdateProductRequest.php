@@ -38,7 +38,7 @@ class UpdateProductRequest extends FormRequest
                 'sometimes',
                 'string',
                 'max:255',
-                Rule::unique('products', 'sku')->ignore($this->route('id')),
+                Rule::unique('products', 'sku')->ignore($this->route('product')),
             ],
 
             'weight' => ['sometimes', 'nullable', 'numeric', 'min:0'],
