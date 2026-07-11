@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
+
 use App\Http\Requests\IndexProductRequest;
 use App\Http\Requests\ShowProductRequest;
 use App\Http\Requests\StoreProductRequest;
@@ -52,5 +54,14 @@ class ProductController extends Controller
         $product = $productService->update($product, $request->validated());
 
         return new ProductResource($product);
+    }
+
+    public function destroy(Product $product): JsonResponse
+    {
+        $product->delete();
+
+        return response()->json([
+            'message' => 'Product deleted successfully.',
+        ]);
     }
 }
