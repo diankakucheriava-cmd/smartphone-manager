@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
 
 class Product extends Model
 {
@@ -54,5 +55,18 @@ class Product extends Model
     public function reviews()
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function scopeFilterByBrand(Builder $query, ?string $brandName): Builder
+    {
+        if (!$brandName) {
+            return $query;
+        }
+
+        return $query->whereHas(
+            'brand',
+            fn(Builder $brandQuery) =>
+            $brandQuery->where('name', $brandName)
+        );
     }
 }
