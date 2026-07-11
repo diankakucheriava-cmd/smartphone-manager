@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AvailabilityStatus;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
@@ -116,7 +117,8 @@ class ProductImportService
             'depth'                => $data['dimensions']['depth'] ?? null,
             'warranty_information' => $data['warrantyInformation'] ?? null,
             'shipping_information' => $data['shippingInformation'] ?? null,
-            'availability_status'  => $data['availabilityStatus'] ?? null,
+            'availability_status'  => (AvailabilityStatus::tryFrom($data['availabilityStatus'] ?? '')
+                ?? AvailabilityStatus::OutOfStock)->value,
             'return_policy'        => $data['returnPolicy'] ?? null,
             'minimum_order_quantity' => $data['minimumOrderQuantity'] ?? null,
             'barcode'              => $data['meta']['barcode'] ?? null,
