@@ -6,13 +6,14 @@ use App\Enums\AvailabilityStatus;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
-use App\Models\Tag;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class ProductImportService
 {
     private const API_URL = 'https://dummyjson.com/products/category/smartphones';
+
+    public function __construct(private readonly ProductRelationService $relationService) {}
 
     public function importProductsFromApi(): void
     {
@@ -27,9 +28,7 @@ class ProductImportService
     {
         $response = Http::timeout(15)
             ->retry(3, 500)
-            ->get(self::API_URL, [
-                'limit' => 0,
-            ])
+            ->get(self::API_URL, ['limit' => 0])
             ->throw();
 
         $products = $response->json('products');
@@ -52,53 +51,14 @@ class ProductImportService
             ['external_id' => $data['id']],
             [
                 ...$this->mapProductData($data),
-                'brand_id' => $brand->id,
+                'brand_id'    => $brand->id,
                 'category_id' => $category->id,
             ]
         );
 
-        $this->syncTags($product, $data['tags'] ?? []);
-        $this->syncImages($product, $data['images'] ?? []);
-        $this->syncReviews($product, $data['reviews'] ?? []);
-    }
-
-    private function syncTags(Product $product, array $tags): void
-    {
-        $tagIds = [];
-
-        foreach ($tags as $tagName) {
-            $tag = Tag::firstOrCreate([
-                'name' => $tagName,
-            ]);
-
-            $tagIds[] = $tag->id;
-        }
-
-        $product->tags()->sync($tagIds);
-    }
-
-    private function syncImages(Product $product, array $images): void
-    {
-        $product->images()->delete();
-
-        $product->images()->createMany(
-            array_map(fn(string $url) => ['url' => $url], $images)
-        );
-    }
-
-    private function syncReviews(Product $product, array $reviews): void
-    {
-        $product->reviews()->delete();
-
-        foreach ($reviews as $review) {
-            $product->reviews()->create([
-                'rating' => $review['rating'],
-                'comment' => $review['comment'],
-                'reviewed_at' => $review['date'],
-                'reviewer_name' => $review['reviewerName'],
-                'reviewer_email' => $review['reviewerEmail'],
-            ]);
-        }
+        $this->relationService->syncTags($product, $data['tags'] ?? []);
+        $this->relationService->syncImages($product, $data['images'] ?? []);
+        $this->relationService->syncReviews($product, $data['reviews'] ?? []);
     }
 
     private function mapProductData(array $data): array
@@ -117,8 +77,9 @@ class ProductImportService
             'depth'                => $data['dimensions']['depth'] ?? null,
             'warranty_information' => $data['warrantyInformation'] ?? null,
             'shipping_information' => $data['shippingInformation'] ?? null,
-            'availability_status'  => (AvailabilityStatus::tryFrom($data['availabilityStatus'] ?? '')
-                ?? AvailabilityStatus::OutOfStock)->value,
+            'availability_status'  => AvailabilityStatus::tryFrom(
+                $data['availabilityStatus'] ?? ''
+            )?->value,
             'return_policy'        => $data['returnPolicy'] ?? null,
             'minimum_order_quantity' => $data['minimumOrderQuantity'] ?? null,
             'barcode'              => $data['meta']['barcode'] ?? null,

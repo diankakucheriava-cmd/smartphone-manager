@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\IndexProductRequest;
 use App\Http\Requests\ShowProductRequest;
+use App\Http\Requests\StoreProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Services\ProductService;
 
 class ProductController extends Controller
 {
@@ -31,6 +33,16 @@ class ProductController extends Controller
         if (!$product) {
             return response()->json(['message' => 'Product not found'], 404);
         }
+
+        return new ProductResource($product);
+    }
+
+    public function store(StoreProductRequest $request, ProductService $productService): ProductResource
+    {
+
+        $product = $productService->create(
+            $request->validated()
+        );
 
         return new ProductResource($product);
     }
