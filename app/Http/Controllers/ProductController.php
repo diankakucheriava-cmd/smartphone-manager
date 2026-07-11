@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\IndexProductRequest;
 use App\Http\Requests\ShowProductRequest;
 use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Services\ProductService;
@@ -26,23 +27,29 @@ class ProductController extends Controller
         );
     }
 
-    public function show(ShowProductRequest $request, int $id)
+    public function show(ShowProductRequest $request, Product $product): ProductResource
     {
-        $product = Product::with(['brand', 'category', 'tags', 'images', 'reviews'])->find($id);
-
-        if (!$product) {
-            return response()->json(['message' => 'Product not found'], 404);
-        }
+        $product->load([
+            'brand',
+            'category',
+            'tags',
+            'images',
+            'reviews',
+        ]);
 
         return new ProductResource($product);
     }
 
     public function store(StoreProductRequest $request, ProductService $productService): ProductResource
     {
+        $product = $productService->create($request->validated());
 
-        $product = $productService->create(
-            $request->validated()
-        );
+        return new ProductResource($product);
+    }
+
+    public function update(UpdateProductRequest $request, ProductService $productService,  Product $product): ProductResource
+    {
+        $product = $productService->update($product, $request->validated());
 
         return new ProductResource($product);
     }

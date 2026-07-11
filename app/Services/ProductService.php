@@ -54,4 +54,84 @@ class ProductService
             ]);
         });
     }
+
+    public function update(Product $product, array $data): Product
+    {
+        return DB::transaction(function () use ($product, $data) {
+            $fields = [];
+
+            $map = [
+                'title'               => 'title',
+                'description'         => 'description',
+                'price'               => 'price',
+                'discountPercentage'  => 'discount_percentage',
+                'rating'              => 'rating',
+                'stock'               => 'stock',
+                'sku'                 => 'sku',
+                'weight'              => 'weight',
+                'warrantyInformation' => 'warranty_information',
+                'shippingInformation' => 'shipping_information',
+                'availabilityStatus'  => 'availability_status',
+                'returnPolicy'        => 'return_policy',
+                'minimumOrderQuantity' => 'minimum_order_quantity',
+                'thumbnail'           => 'thumbnail',
+            ];
+
+            foreach ($map as $input => $column) {
+                if (array_key_exists($input, $data)) {
+                    $fields[$column] = $data[$input];
+                }
+            }
+
+            if (array_key_exists('brand', $data)) {
+                $fields['brand_id'] = Brand::firstOrCreate(['name' => $data['brand']])->id;
+            }
+
+            if (array_key_exists('category', $data)) {
+                $fields['category_id'] = Category::firstOrCreate(['name' => $data['category']])->id;
+            }
+
+            if (array_key_exists('dimensions', $data)) {
+                if (array_key_exists('width', $data['dimensions'])) {
+                    $fields['width'] = $data['dimensions']['width'];
+                }
+
+                if (array_key_exists('height', $data['dimensions'])) {
+                    $fields['height'] = $data['dimensions']['height'];
+                }
+
+                if (array_key_exists('depth', $data['dimensions'])) {
+                    $fields['depth'] = $data['dimensions']['depth'];
+                }
+            }
+
+            if (array_key_exists('meta', $data)) {
+                if (array_key_exists('barcode', $data['meta'])) {
+                    $fields['barcode'] = $data['meta']['barcode'];
+                }
+
+                if (array_key_exists('qrCode', $data['meta'])) {
+                    $fields['qr_code'] = $data['meta']['qrCode'];
+                }
+            }
+
+            if (!empty($fields)) {
+                $product->update($fields);
+            }
+
+            if (array_key_exists('tags', $data)) {
+                $this->relationService->syncTags($product, $data['tags']);
+            }
+
+            if (array_key_exists('images', $data)) {
+                $this->relationService->syncImages($product, $data['images']);
+            }
+
+            if (array_key_exists('reviews', $data)) {
+                $this->relationService->syncReviews($product, $data['reviews']);
+            }
+
+            return $product->load(['brand', 'category', 'tags', 'images', 'reviews']);
+        });
+    }
 }
