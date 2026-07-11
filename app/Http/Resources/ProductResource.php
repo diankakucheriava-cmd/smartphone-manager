@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\Currency;
+use App\Services\CurrencyService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -14,11 +16,17 @@ class ProductResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $currency = Currency::tryFrom($request->query('currency', '')) ?? Currency::USD;
+        $price    = $currency === Currency::USD
+            ? $this->price
+            : app(CurrencyService::class)->convert((float) $this->price, $currency);
+
         return [
             'id'                     => $this->id,
             'title'                  => $this->title,
             'description'            => $this->description,
-            'price'                  => $this->price,
+            'price'                  => $price,
+            'currency'               => $currency->value,
             'discount_percentage'    => $this->discount_percentage,
             'rating'                 => $this->rating,
             'stock'                  => $this->stock,

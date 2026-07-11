@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\IndexProductRequest;
+use App\Http\Requests\ShowProductRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 
@@ -23,7 +24,7 @@ class ProductController extends Controller
         );
     }
 
-    public function show(int $id)
+    public function show(ShowProductRequest $request, int $id)
     {
         $product = Product::with(['brand', 'category', 'tags', 'images', 'reviews'])->find($id);
 
