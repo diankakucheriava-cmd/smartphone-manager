@@ -13,6 +13,9 @@ class CurrencyService
     'https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?format=json';
 
     private const CACHE_KEY = 'nbu_exchange_rates';
+    private const REQUEST_TIMEOUT = 10;
+    private const REQUEST_RETRIES = 3;
+    private const RETRY_DELAY_MS = 500;
 
     public function convert(float $amountUsd, Currency $to): float
     {
@@ -46,7 +49,8 @@ class CurrencyService
     private function fetchFromNbu(): array
     {
         try {
-            $response = Http::timeout(10)
+            $response = Http::timeout(self::REQUEST_TIMEOUT)
+                ->retry(self::REQUEST_RETRIES, self::RETRY_DELAY_MS, throw: false)
                 ->get(self::NBU_API_URL);
 
             if ($response->failed()) {
@@ -81,10 +85,10 @@ class CurrencyService
     {
         return [
             Currency::USD->value =>
-            (float) config('currency.fallback_usd_rate', 41.5),
+            (float) config('currency.fallback_usd_rate'),
 
             Currency::EUR->value =>
-            (float) config('currency.fallback_eur_rate', 45.0),
+            (float) config('currency.fallback_eur_rate'),
         ];
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\AvailabilityStatus;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Validation\ProductImportValidator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
@@ -13,14 +14,16 @@ class ProductImportService
 {
     private const API_URL = 'https://dummyjson.com/products/category/smartphones';
 
-    public function __construct(private readonly ProductRelationService $relationService) {}
+    public function __construct(private readonly ProductRelationService $relationService, private readonly ProductImportValidator $validator) {}
 
     public function importProductsFromApi(): void
     {
         $products = $this->fetchFromApi();
 
         foreach ($products as $data) {
-            DB::transaction(fn() => $this->importSingleProduct($data));
+            $validatedData = $this->validator::validate($data);
+
+            DB::transaction(fn() => $this->importSingleProduct($validatedData));
         }
     }
 
@@ -56,35 +59,51 @@ class ProductImportService
             ]
         );
 
-        $this->relationService->syncTags($product, $data['tags'] ?? []);
-        $this->relationService->syncImages($product, $data['images'] ?? []);
-        $this->relationService->syncReviews($product, $data['reviews'] ?? []);
+        $this->relationService->syncTags(
+            $product,
+            $data['tags']
+        );
+
+        $this->relationService->syncImages(
+            $product,
+            $data['images']
+        );
+
+        $this->relationService->syncReviews(
+            $product,
+            $data['reviews']
+        );
     }
 
     private function mapProductData(array $data): array
     {
         return [
-            'title'                => $data['title'] ?? null,
-            'description'          => $data['description'] ?? null,
-            'price'                => $data['price'] ?? null,
-            'discount_percentage'  => $data['discountPercentage'] ?? null,
-            'rating'               => $data['rating'] ?? null,
-            'stock'                => $data['stock'] ?? null,
-            'sku'                  => $data['sku'] ?? null,
-            'weight'               => $data['weight'] ?? null,
-            'width'                => $data['dimensions']['width'] ?? null,
-            'height'               => $data['dimensions']['height'] ?? null,
-            'depth'                => $data['dimensions']['depth'] ?? null,
-            'warranty_information' => $data['warrantyInformation'] ?? null,
-            'shipping_information' => $data['shippingInformation'] ?? null,
-            'availability_status'  => AvailabilityStatus::tryFrom(
-                $data['availabilityStatus'] ?? ''
-            )?->value,
-            'return_policy'        => $data['returnPolicy'] ?? null,
-            'minimum_order_quantity' => $data['minimumOrderQuantity'] ?? null,
-            'barcode'              => $data['meta']['barcode'] ?? null,
-            'qr_code'              => $data['meta']['qrCode'] ?? null,
-            'thumbnail'            => $data['thumbnail'] ?? null,
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'price' => $data['price'],
+            'discount_percentage' => $data['discountPercentage'],
+            'rating' => $data['rating'],
+            'stock' => $data['stock'],
+            'sku' => $data['sku'],
+            'weight' => $data['weight'],
+
+            'width' => $data['dimensions']['width'],
+            'height' => $data['dimensions']['height'],
+            'depth' => $data['dimensions']['depth'],
+
+            'warranty_information' => $data['warrantyInformation'],
+            'shipping_information' => $data['shippingInformation'],
+
+            'availability_status' => AvailabilityStatus::from(
+                $data['availabilityStatus']
+            )->value,
+
+            'return_policy' => $data['returnPolicy'],
+            'minimum_order_quantity' => $data['minimumOrderQuantity'],
+
+            'barcode' => $data['meta']['barcode'],
+            'qr_code' => $data['meta']['qrCode'],
+            'thumbnail' => $data['thumbnail'],
         ];
     }
 }
